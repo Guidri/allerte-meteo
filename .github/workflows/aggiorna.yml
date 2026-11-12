@@ -1,0 +1,30 @@
+name: Aggiorna allerte
+on:
+  schedule:
+    - cron: '7,37 * * * *'   # ogni 30 minuti
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency: aggiorna-allerte
+jobs:
+  aggiorna:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/genera.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Salva se il bollettino è cambiato
+        run: |
+          if [ -n "$(git status --porcelain allerte.json)" ]; then
+            git config user.name "allerte-bot"
+            git config user.email "allerte-bot@users.noreply.github.com"
+            git add allerte.json
+            git commit -m "Bollettino $(node -p "require('./allerte.json').id")"
+            git push
+          else
+            echo "Nessun cambiamento"
+          fi
